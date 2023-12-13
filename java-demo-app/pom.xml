@@ -15,9 +15,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <junit.version>5.3.1</junit.version>
-        <jacoco.version>0.8.11</jacoco.version>
-        <spotbugs.version>4.0.0</spotbugs.version>
-        <pmd.version>3.11.0</pmd.version>
+    
     </properties>
 
     <dependencies>
@@ -30,21 +28,7 @@
         </dependency>
     </dependencies>
 
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>${spotbugs.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>${pmd.version}</version>
-            </plugin>
 
-        </plugins>
-    </reporting>
 
     <build>
         <finalName>java-demo-app</finalName>
