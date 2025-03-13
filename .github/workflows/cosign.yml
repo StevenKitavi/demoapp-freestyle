@@ -6,7 +6,8 @@ on:
   # This is easy for testing purposes, but for your final workflow use whatever event 
   # or schedule makes sense for your project.  
   pull_request:
-    branches: [ "master" ]    
+    branches: [ "master" ]   
+#trigger a scan from master branch     
 
 jobs:
   install-cosign-and-use:
