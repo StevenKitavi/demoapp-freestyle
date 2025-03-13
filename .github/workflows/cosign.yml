@@ -1,10 +1,11 @@
 name: install-cosign-and-use
+
 on:
   # This will trigger the workflow to run when commits are pushed to the main branch.
   # This is easy for testing purposes, but for your final workflow use whatever event 
-  # or schedule makes sense for your project.
-   push:
-    branches: [ main ]
+  # or schedule makes sense for your project.  
+  pull_request:
+    branches: [ "master" ]    
 
 jobs:
   install-cosign-and-use:
