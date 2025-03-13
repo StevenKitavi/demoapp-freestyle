@@ -1,5 +1,6 @@
 name: install-cosign-and-use
 
+
 on:
   # This will trigger the workflow to run when commits are pushed to the main branch.
   # This is easy for testing purposes, but for your final workflow use whatever event 
