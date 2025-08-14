@@ -22,16 +22,34 @@ jobs:
           tar -xzf legitify_1.0.11_linux_amd64.tar.gz
           chmod +x legitify
           
-          # Run analysis with verbose output
+          # First, check what commands are available
+          echo "=== LEGITIFY HELP ==="
+          ./legitify --help
+          
+          echo "=== LEGITIFY ANALYZE HELP ==="
+          ./legitify analyze --help
+          
+          # Run analysis without verbose flag
           echo "=== RUNNING LEGITIFY ANALYZE ==="
-          ./legitify analyze --org StevenKitavi --output-format json --output-file legitify-output.json -v
+          ./legitify analyze --org StevenKitavi --output-format json --output-file legitify-output.json
+          
+          # Check what happened
+          echo "=== COMMAND EXIT CODE: $? ==="
           
           # Check results
           echo "=== CHECKING RESULTS ==="
           ls -la
           if [ -f legitify-output.json ]; then
             echo "✅ Results generated!"
+            echo "File size: $(wc -c < legitify-output.json) bytes"
+            echo "=== RESULTS CONTENT ==="
             cat legitify-output.json
           else
             echo "❌ No output generated"
+          fi
+          
+          # Also check for any error files
+          if [ -f error.log ]; then
+            echo "=== ERROR LOG ==="
+            cat error.log
           fi
