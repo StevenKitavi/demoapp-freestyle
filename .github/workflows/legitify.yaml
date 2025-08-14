@@ -1,11 +1,3 @@
-name: Legitify Analyze
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 11 * * 1-5'
-  push:
-    branches: [ "master" ]
-
 jobs:
   analyze:
     runs-on: ubuntu-latest
@@ -13,38 +5,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Legitify Action
-        uses: Legit-Labs/legitify@main
-        with:
-          github_token: ${{ secrets.PAT_FOR_LEGITIFY }}
-          upload_code_scanning: false  # Disable upload to avoid errors
-          ignore-policies: |
-            non_admins_can_create_public_repositories
-            requires_status_checks
-            
-      # Add these steps to see results in pipeline
-      - name: Display JSON Results
+      - name: Download and Run Legitify Manually
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_FOR_LEGITIFY }}
         run: |
-          echo "=== LEGITIFY ANALYSIS RESULTS ==="
+          # Download Legitify
+          wget https://github.com/Legit-Labs/legitify/releases/download/v1.0.11/legitify_1.0.11_linux_amd64.tar.gz
+          tar -xzf legitify_1.0.11_linux_amd64.tar.gz
+          chmod +x legitify
+          
+          # Run analysis with verbose output
+          echo "=== RUNNING LEGITIFY ANALYZE ==="
+          ./legitify analyze --org StevenKitavi --output-format json --output-file legitify-output.json -v
+          
+          # Check results
+          echo "=== CHECKING RESULTS ==="
+          ls -la
           if [ -f legitify-output.json ]; then
-            cat legitify-output.json | jq '.' || cat legitify-output.json
+            echo "✅ Results generated!"
+            cat legitify-output.json
           else
-            echo "No JSON output found"
+            echo "❌ No output generated"
           fi
-        continue-on-error: true
-        
-      - name: Display Markdown Report
-        run: |
-          echo "=== MARKDOWN REPORT ==="
-          if [ -f legitify-output.md ]; then
-            cat legitify-output.md
-          else
-            echo "No markdown output found"
-          fi
-        continue-on-error: true
-        
-      - name: List Generated Files
-        run: |
-          echo "=== GENERATED FILES ==="
-          ls -la legitify-output.*
-        continue-on-error: true
