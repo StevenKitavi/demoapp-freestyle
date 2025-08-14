@@ -2,14 +2,9 @@ name: Legitify Analyze
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 11 * * 1-5'  # Fixed cron syntax
+    - cron: '0 11 * * 1-5'
   push:
     branches: [ "master" ]
-
-permissions:
-  security-events: write  # Required for Code Scanning
-  contents: read
-  actions: read
 
 jobs:
   analyze:
@@ -21,7 +16,35 @@ jobs:
       - name: Legitify Action
         uses: Legit-Labs/legitify@main
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.PAT_FOR_LEGITIFY }}
+          upload_code_scanning: false  # Disable upload to avoid errors
           ignore-policies: |
             non_admins_can_create_public_repositories
             requires_status_checks
+            
+      # Add these steps to see results in pipeline
+      - name: Display JSON Results
+        run: |
+          echo "=== LEGITIFY ANALYSIS RESULTS ==="
+          if [ -f legitify-output.json ]; then
+            cat legitify-output.json | jq '.' || cat legitify-output.json
+          else
+            echo "No JSON output found"
+          fi
+        continue-on-error: true
+        
+      - name: Display Markdown Report
+        run: |
+          echo "=== MARKDOWN REPORT ==="
+          if [ -f legitify-output.md ]; then
+            cat legitify-output.md
+          else
+            echo "No markdown output found"
+          fi
+        continue-on-error: true
+        
+      - name: List Generated Files
+        run: |
+          echo "=== GENERATED FILES ==="
+          ls -la legitify-output.*
+        continue-on-error: true
