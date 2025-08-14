@@ -2,6 +2,11 @@ name: Legitify Test - Show All Issues
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: '0 11 * * 1-5'
+  push:
+    branches: [ "master" ]  
+
 jobs:
   test:
     runs-on: ubuntu-latest
