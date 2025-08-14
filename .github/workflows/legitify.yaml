@@ -2,7 +2,7 @@ name: Legitify Analyze
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 11 * * 1-5'  # Fixed cron syntax
+    - cron: '0 11 * * 1-5'
   push:
     branches: [ "master" ]
     
@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Download and Run Legitify with Token
+      - name: Download and Run Legitify
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_FOR_LEGITIFY }}
         run: |
@@ -29,7 +29,7 @@ jobs:
             echo "❌ GITHUB_TOKEN is not set"
             exit 1
           else
-            echo "✅ GITHUB_TOKEN is set (length: ${#GITHUB_TOKEN})"
+            echo "✅ GITHUB_TOKEN is set"
           fi
           
           # Test GitHub API access
@@ -38,7 +38,7 @@ jobs:
           
           # Create ignore policies file
           echo "=== CREATING IGNORE POLICIES ==="
-          cat > ignored-policies << EOF
+          cat > ignored-policies << 'EOF'
           non_admins_can_create_public_repositories
           requires_status_checks
           EOF
@@ -52,7 +52,8 @@ jobs:
             --output-file legitify-results.json \
             --ignore-policies-file ignored-policies
           
-          echo "=== COMMAND EXIT CODE: $? ==="
+          LEGITIFY_EXIT_CODE=$?
+          echo "=== COMMAND EXIT CODE: $LEGITIFY_EXIT_CODE ==="
           
           # Check results
           echo "=== CHECKING FILES ==="
@@ -61,11 +62,17 @@ jobs:
           if [ -f legitify-results.json ]; then
             echo "✅ Results file generated!"
             echo "File size: $(wc -c < legitify-results.json) bytes"
-            echo "=== RESULTS CONTENT ==="
-            cat legitify-results.json
-            echo ""
-            echo "=== CONVERTING TO MARKDOWN ==="
-            ./legitify convert --input-file legitify-results.json --output-format markdown
+            
+            # Check if file has content
+            if [ -s legitify-results.json ]; then
+              echo "=== RESULTS CONTENT ==="
+              cat legitify-results.json
+              echo ""
+              echo "=== CONVERTING TO MARKDOWN ==="
+              ./legitify convert --input-file legitify-results.json --output-format markdown
+            else
+              echo "📝 Results file is empty - no policy violations found!"
+            fi
           else
             echo "❌ No results file generated"
           fi
@@ -85,8 +92,14 @@ jobs:
           # Show summary
           echo "=== SUMMARY ==="
           if [ -f legitify-results.json ]; then
-            echo "✅ Legitify analysis completed successfully"
-            echo "📊 Check the JSON output above for detailed security findings"
-            echo "📝 Markdown report also generated for human-readable format"
+            if [ -s legitify-results.json ]; then
+              echo "✅ Legitify analysis completed - security issues found"
+              echo "📊 Review the detailed findings above"
+            else
+              echo "✅ Legitify analysis completed - no security issues found!"
+              echo "🎉 Your GitHub organization configuration looks secure"
+            fi
           else
-            echo "❌ Legitify analysis
+            echo "❌ Legitify analysis failed"
+            exit 1
+          fi
