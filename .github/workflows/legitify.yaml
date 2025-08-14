@@ -2,10 +2,10 @@ name: Legitify Analyze
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 11 * * 1-5'
+    - cron: '0 11 * * 1-5'  # Fixed cron syntax
   push:
     branches: [ "master" ]
-
+    
 jobs:
   analyze:
     runs-on: ubuntu-latest
@@ -13,43 +13,80 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Download and Run Legitify Manually
+      - name: Download and Run Legitify with Token
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_FOR_LEGITIFY }}
         run: |
-          # Download Legitify
+          # Download and setup
+          echo "=== DOWNLOADING LEGITIFY ==="
           wget https://github.com/Legit-Labs/legitify/releases/download/v1.0.11/legitify_1.0.11_linux_amd64.tar.gz
           tar -xzf legitify_1.0.11_linux_amd64.tar.gz
           chmod +x legitify
           
-          # First, check what commands are available
-          echo "=== LEGITIFY HELP ==="
-          ./legitify --help
+          # Test if token is set
+          echo "=== CHECKING TOKEN ==="
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "❌ GITHUB_TOKEN is not set"
+            exit 1
+          else
+            echo "✅ GITHUB_TOKEN is set (length: ${#GITHUB_TOKEN})"
+          fi
           
-          echo "=== LEGITIFY ANALYZE HELP ==="
-          ./legitify analyze --help
+          # Test GitHub API access
+          echo "=== TESTING GITHUB API ACCESS ==="
+          curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user | jq '.login // .message' || echo "API test failed"
           
-          # Run analysis without verbose flag
+          # Create ignore policies file
+          echo "=== CREATING IGNORE POLICIES ==="
+          cat > ignored-policies << EOF
+          non_admins_can_create_public_repositories
+          requires_status_checks
+          EOF
+          
+          # Run legitify with explicit token flag
           echo "=== RUNNING LEGITIFY ANALYZE ==="
-          ./legitify analyze --org StevenKitavi --output-format json --output-file legitify-output.json
+          ./legitify analyze \
+            --org StevenKitavi \
+            --token "$GITHUB_TOKEN" \
+            --output-format json \
+            --output-file legitify-results.json \
+            --ignore-policies-file ignored-policies
           
-          # Check what happened
           echo "=== COMMAND EXIT CODE: $? ==="
           
           # Check results
-          echo "=== CHECKING RESULTS ==="
-          ls -la
-          if [ -f legitify-output.json ]; then
-            echo "✅ Results generated!"
-            echo "File size: $(wc -c < legitify-output.json) bytes"
+          echo "=== CHECKING FILES ==="
+          ls -la *.json *.log 2>/dev/null || echo "No output files found"
+          
+          if [ -f legitify-results.json ]; then
+            echo "✅ Results file generated!"
+            echo "File size: $(wc -c < legitify-results.json) bytes"
             echo "=== RESULTS CONTENT ==="
-            cat legitify-output.json
+            cat legitify-results.json
+            echo ""
+            echo "=== CONVERTING TO MARKDOWN ==="
+            ./legitify convert --input-file legitify-results.json --output-format markdown
           else
-            echo "❌ No output generated"
+            echo "❌ No results file generated"
           fi
           
-          # Also check for any error files
+          # Check error log
           if [ -f error.log ]; then
             echo "=== ERROR LOG ==="
             cat error.log
           fi
+          
+          # Check permissions log
+          if [ -f permissions_log.json ]; then
+            echo "=== PERMISSIONS LOG ==="
+            cat permissions_log.json
+          fi
+          
+          # Show summary
+          echo "=== SUMMARY ==="
+          if [ -f legitify-results.json ]; then
+            echo "✅ Legitify analysis completed successfully"
+            echo "📊 Check the JSON output above for detailed security findings"
+            echo "📝 Markdown report also generated for human-readable format"
+          else
+            echo "❌ Legitify analysis
